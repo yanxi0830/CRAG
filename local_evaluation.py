@@ -15,10 +15,13 @@ from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 from loguru import logger
 from openai import APIConnectionError, OpenAI, RateLimitError
 from prompts.templates import IN_CONTEXT_EXAMPLES, INSTRUCTIONS
+from rich.console import Console
 from tqdm.auto import tqdm
 from transformers import LlamaTokenizerFast
 
 tokenizer = LlamaTokenizerFast.from_pretrained("tokenizer")
+
+console = Console()
 
 
 def load_json_file(file_path):
@@ -44,7 +47,6 @@ def attempt_api_call(client, model_name, messages, max_retries=10):
                 response_format={"type": "json_object"},
                 temperature=0.0,
             )
-            print(response)
             return response.choices[0].message.content
         except (APIConnectionError, RateLimitError):
             logger.warning(f"API call failed on attempt {attempt + 1}, retrying...")
@@ -150,6 +152,10 @@ def load_data_in_batches(dataset_path, batch_size):
                         batch[key].append(item[key])
 
                     if len(batch["query"]) == batch_size:
+                        console.log(batch.keys())
+                        console.log(batch["query"])
+                        console.log(batch["answer"])
+                        exit(1)
                         yield batch
                         batch = initialize_batch()
                 except json.JSONDecodeError:
@@ -307,7 +313,8 @@ def evaluate_predictions(
 if __name__ == "__main__":
     from models.user_config import UserModel
 
-    DATASET_PATH = "example_data/dev_data.jsonl.bz2"
+    # DATASET_PATH = "example_data/dev_data.jsonl.bz2"
+    DATASET_PATH = "data/crag_task_3_dev_v4.jsonl.bz2"
     EVALUATION_MODEL_NAME = os.getenv("EVALUATION_MODEL_NAME", "gpt-4o")
 
     # Generate predictions
